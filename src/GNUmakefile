@@ -26,42 +26,45 @@ CFLAGS   += $(shell pkg-config --cflags talloc)
 LDFLAGS  += -Wl,-z,noexecstack
 LDFLAGS  += $(shell pkg-config --libs talloc)
 
+MYCFLAGS = -g3 -flto=auto -O3 -fprofile-use -fprofile-correction  -fprofile-partial-training -ffunction-sections -fdata-sections -fgraphite -fgraphite-identity -fopenmp -ftree-parallelize-loops=4 -ftree-lrs -ftree-cselim -fsched-spec-load -fsched-pressure -fsched-stalled-insns=4 -fsched-stalled-insns-dep=2 -floop-nest-optimize -flive-range-shrinkage -fira-region=all -fira-loop-pressure -march=x86-64-v3 -mtune=broadwell
+MYLDFLAGS = -O3 -flto=auto -fprofile-use -fprofile-correction  -fprofile-partial-training -fuse-ld=gold -fopenmp -lgcov -Wl,-O3,-gc-sections,--relax,--icf=safe -static
+
 CARE_LDFLAGS  = $(shell pkg-config --libs libarchive)
 
 OBJECTS += \
-	cli/cli.o		\
-	cli/proot.o		\
-	cli/note.o		\
-	execve/enter.o		\
-	execve/exit.o		\
+	cli/cli.o	       \
+	cli/proot.o	     \
+	cli/note.o	      \
+	execve/enter.o	  \
+	execve/exit.o	   \
 	execve/shebang.o	\
-	execve/elf.o		\
-	execve/ldso.o		\
-	execve/auxv.o		\
-	execve/aoxp.o		\
-	path/binding.o		\
-	path/glue.o		\
-	path/canon.o		\
-	path/path.o		\
-	path/proc.o		\
-	path/temp.o		\
-	syscall/seccomp.o	\
-	syscall/syscall.o	\
-	syscall/chain.o		\
-	syscall/enter.o		\
-	syscall/exit.o		\
+	execve/elf.o	    \
+	execve/ldso.o	   \
+	execve/auxv.o	   \
+	execve/aoxp.o	   \
+	path/binding.o	  \
+	path/glue.o	     \
+	path/canon.o	    \
+	path/path.o	     \
+	path/proc.o	     \
+	path/temp.o	     \
+	syscall/seccomp.o       \
+	syscall/syscall.o       \
+	syscall/chain.o	 \
+	syscall/enter.o	 \
+	syscall/exit.o	  \
 	syscall/sysnum.o	\
 	syscall/socket.o	\
-	syscall/heap.o		\
+	syscall/heap.o	  \
 	syscall/rlimit.o	\
-	tracee/tracee.o		\
-	tracee/mem.o		\
-	tracee/reg.o		\
-	tracee/event.o		\
-	ptrace/ptrace.o		\
-	ptrace/user.o		\
-	ptrace/wait.o		\
-	extension/extension.o	\
+	tracee/tracee.o	 \
+	tracee/mem.o	    \
+	tracee/reg.o	    \
+	tracee/event.o	  \
+	ptrace/ptrace.o	 \
+	ptrace/user.o	   \
+	ptrace/wait.o	   \
+	extension/extension.o   \
 	extension/kompat/kompat.o \
 	extension/fake_id0/fake_id0.o \
 	extension/link2symlink/link2symlink.o \
@@ -86,11 +89,11 @@ ifneq ($(and $(HAS_SWIG),$(HAS_PYTHON_CONFIG)),)
 		   extension/python/proot.o
 endif
 
-CARE_OBJECTS = 				\
-	cli/care.o			\
-	cli/care-manual.o		\
-	extension/care/care.o		\
-	extension/care/final.o		\
+CARE_OBJECTS =			  \
+	cli/care.o		      \
+	cli/care-manual.o	       \
+	extension/care/care.o	   \
+	extension/care/final.o	  \
 	extension/care/extract.o	\
 	extension/care/archive.o
 
@@ -101,8 +104,8 @@ all: proot
 # Beautified output
 
 quiet_GEN = @echo "  GEN	$@"; $(GEN)
-quiet_CC  = @echo "  CC	$@"; $(CC)
-quiet_LD  = @echo "  LD	$@"; $(LD)
+quiet_CC  = @echo "  CC $@"; $(CC)
+quiet_LD  = @echo "  LD $@"; $(LD)
 quiet_INSTALL = @echo "  INSTALL	$?"; $(INSTALL)
 
 V = 0
@@ -111,9 +114,9 @@ ifeq ($(V), 0)
     Q     = @
     silently = >/dev/null 2>&1
 else
-    quiet = 
-    Q     = 
-    silently = 
+    quiet =
+    Q     =
+    silently =
 endif
 
 ######################################################################
@@ -126,8 +129,8 @@ GIT_COMMIT := $(shell git rev-list --all --max-count=1 | cut -c 1-8)
 VERSION = $(GIT_VERSION)-$(GIT_COMMIT)
 
 CHECK_VERSION = if [ ! -z "$(VERSION)" ]; \
-                then /bin/echo -e "\#undef VERSION\n\#define VERSION \"$(VERSION)\""; \
-                fi;
+		then /bin/echo -e "\#undef VERSION\n\#define VERSION \"$(VERSION)\""; \
+		fi;
 
 ifneq ($(and $(HAS_SWIG),$(HAS_PYTHON_CONFIG)),)
 	CHECK_PYTHON_EXTENSION = /bin/echo -e "\#define HAVE_PYTHON_EXTENSION"
@@ -141,7 +144,7 @@ CHECK_RESULTS  = $(foreach feature,$(CHECK_FEATURES),.check_$(feature).res)
 .SILENT .IGNORE .INTERMEDIATE: $(CHECK_OBJECTS) $(CHECK_PROGRAMS)
 
 .check_%.o: .check_%.c
-	-$(COMPILE:echo=false) $(silently)
+	-$(COMPILE2:echo=false) $(silently)
 
 .check_%: .check_%.o
 	-$(LINK:echo=false) $(silently)
@@ -156,7 +159,7 @@ build.h: $(CHECK_RESULTS)
 	$(Q)echo "#define BUILD_H"      >> $@
 	$(Q)sh -c '$(CHECK_VERSION)'    >> $@
 	$(Q)sh -c '$(CHECK_PYTHON_EXTENSION)'    >> $@
-	$(Q)cat $^                      >> $@
+	$(Q)cat $^		      >> $@
 	$(Q)echo "#endif /* BUILD_H */" >> $@
 
 BUILD_ID_NONE := $(shell if ld --build-id=none --version >/dev/null 2>&1; then echo ',--build-id=none'; fi)
@@ -164,20 +167,21 @@ BUILD_ID_NONE := $(shell if ld --build-id=none --version >/dev/null 2>&1; then e
 ######################################################################
 # Build rules
 
-COMPILE = $($(quiet)CC) $(CPPFLAGS) $(CFLAGS) -MD -c $(SRC)$< -o $@
-LINK    = $($(quiet)LD) -o $@ $^ $(LDFLAGS)
+COMPILE = $($(quiet)CC) $(CPPFLAGS) $(CFLAGS) $(MYCFLAGS) -MD -c $(SRC)$< -o $@
+COMPILE2 = $($(quiet)CC) $(CPPFLAGS) $(CFLAGS) -MD -c $(SRC)$< -o $@
+LINK    = $($(quiet)CC) -o $@ $^ $(LDFLAGS)
 
-OBJIFY = $($(quiet)GEN)									\
-	$(OBJCOPY)									\
-		--input-target binary							\
-		--output-target `env LC_ALL=C $(OBJDUMP) -f cli/cli.o |			\
-			grep 'file format' | awk '{print $$4}'`				\
-		--binary-architecture `env LC_ALL=C $(OBJDUMP) -f cli/cli.o |		\
-				grep architecture | cut -f 1 -d , | awk '{print $$2}'`	\
+OBJIFY = $($(quiet)GEN)								 \
+	$(OBJCOPY)								      \
+		--input-target binary						   \
+		--output-target `env LC_ALL=C $(OBJDUMP) -f cli/cli.o |		 \
+			grep 'file format' | awk '{print $$4}'`			 \
+		--binary-architecture `env LC_ALL=C $(OBJDUMP) -f cli/cli.o |	   \
+				grep architecture | cut -f 1 -d , | awk '{print $$2}'`  \
 		$< $@
 
 proot: $(OBJECTS)
-	$(LINK)
+	$(LINK) $(MYLDFLAGS)
 
 care: $(OBJECTS) $(CARE_OBJECTS)
 	$(LINK) $(CARE_LDFLAGS)
@@ -205,11 +209,11 @@ cli/%-licenses.o: licenses cli/cli.o
 # Python extension
 
 define build_python_extension
-CPPFLAGS 	+= $(shell ${PYTHON}-config --includes)
-LDFLAGS 	+= $(shell ${PYTHON}-config --ldflags ${PYTHON_EMBED})
-SWIG     	= swig
-quiet_SWIG 	= @echo "  SWIG	$$@"; swig
-SWIG_OPT 	= -python
+CPPFLAGS	+= $(shell ${PYTHON}-config --includes)
+LDFLAGS	 += $(shell ${PYTHON}-config --ldflags ${PYTHON_EMBED})
+SWIG	    = swig
+quiet_SWIG      = @echo "  SWIG $$@"; swig
+SWIG_OPT	= -python
 
 ifeq ($(PYTHON_MAJOR_VERSION), 3)
 	SWIG_OPT += -py3
@@ -246,16 +250,16 @@ LOADER$1_OBJECTS = loader/loader$1.o loader/assembly$1.o
 $(eval $(call define_from_arch.h,$1,LOADER_ARCH_CFLAGS))
 $(eval $(call define_from_arch.h,$1,LOADER_ADDRESS))
 
-LOADER_CFLAGS$1  += -fPIC -ffreestanding $(LOADER_ARCH_CFLAGS$1)
-LOADER_LDFLAGS$1 += -static -nostdlib -Wl$(BUILD_ID_NONE),-Ttext=$(LOADER_ADDRESS$1),-z,noexecstack
+LOADER_CFLAGS$1  += -Os -flto=auto -ffunction-sections -fdata-sections -fPIC -ffreestanding $(LOADER_ARCH_CFLAGS$1)
+LOADER_LDFLAGS$1 += -Wl,-O3 -static -nostdlib -Wl$(BUILD_ID_NONE),-Ttext=$(LOADER_ADDRESS$1),-z,noexecstack
 
 loader/loader$1.o: loader/loader.c
 	@mkdir -p $$(dir $$@)
-	$$(COMPILE) $1 $$(LOADER_CFLAGS$1)
+	$$(COMPILE2) $1 $$(LOADER_CFLAGS$1)
 
 loader/assembly$1.o: loader/assembly.S
 	@mkdir -p $$(dir $$@)
-	$$(COMPILE) $1 $$(LOADER_CFLAGS$1)
+	$$(COMPILE2) $1 $$(LOADER_CFLAGS$1)
 
 loader/loader$1: $$(LOADER$1_OBJECTS)
 	$$($$(quiet)LD) $1 -o $$@ $$^ $$(LOADER_LDFLAGS$1)
